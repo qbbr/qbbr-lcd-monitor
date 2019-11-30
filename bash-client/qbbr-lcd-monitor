@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# use ./qbbr-lcd-monitor "1st line" "2nd line"
+# LCD 1602 (16x2)
+
+port=/dev/ttyACM0
+
+echo "port: $port"
+
+stty -F $port -hupcl
+
+if [[ "$1" == "--clear" ]]; then
+	echo ".fn:clear;" > $port
+	exit 0
+elif [[ "$1" == "--blink" ]]; then
+	echo ".fn:blink;" > $port
+	exit 0
+elif [[ "$1" == "--blink-long" ]]; then
+	echo ".fn:blink-long;" > $port
+	exit 0
+elif [[ "$1" == "--tone" ]]; then
+	echo ".fn:tone;" > $port
+	exit 0
+fi
+
+if [[ -n $1 ]]; then
+	line1=$(printf '%-16s' "${1:0:16}")
+	echo -n 'set line 1: "'
+	echo -n "${line1}"
+	echo '"'
+	echo ".l1:${line1};" > $port
+fi
+
+if [[ -n $2 ]]; then
+	line2=$(printf '%-16s' "${2:0:16}")
+	echo -n 'set line 2: "'
+	echo -n "${line2}"
+	echo '"'
+	echo ".l2:${line2};" > $port
+fi

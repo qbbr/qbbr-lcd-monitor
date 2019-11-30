@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# @depends: ./qbbr-lcd-monitor
+
+delay=10
+
+line1=""
+line2=""
+lastline1=""
+lastline2=""
+
+while true; do
+    if [ "`mpc | head -c 6`" = "volume" ]; then
+        line1='mpd'
+        line2='[stoped]'
+    elif [ "`mpc | sed -n '2p' | head -c 8`" = "[paused]" ]; then
+        line1='mpd'
+        line2='[paused]'
+    else
+        line1=`mpc -f '%artist%' | head -n 1`
+        line2=`mpc -f '%title%' | head -n 1`
+    fi
+
+    if [[ ("$line1" != "$lastline1" ) || ("$line2" != "$lastline2") ]]; then
+        lastline1=$line1
+        lastline2=$line2
+
+        ./qbbr-lcd-monitor "$line1" "$line2"
+    fi
+
+    sleep $delay
+done
