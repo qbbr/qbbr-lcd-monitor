@@ -11,8 +11,7 @@
 # temperature (DHT):  27.5 C
 # humidity (DHT):     11 %
 
-port=/dev/ttyACM0
-delay=5
+port=/dev/ttyACM0 # chmod a+rw /dev/ttyACM0
 
 function getValue() {
 	value=$(echo $1 | jq $2)
@@ -56,10 +55,10 @@ do
 			echo " m"
 		fi
 
-		temp2=$(getValue "${LINE}" ".dht.temperature") # or ".bmp.temperature"
-		if [[ true == $(isValue $temp2) ]]; then
+		temperature2=$(getValue "${LINE}" ".dht.temperature")
+		if [[ true == $(isValue $temperature2) ]]; then
 			echo -n "temperature (DHT):  "
-			echo -n $temp2
+			echo -n $temperature2
 			echo " C"
 		fi
 
@@ -73,5 +72,5 @@ do
 		echo
 	done < $port
 
-	sleep $delay
+	sleep 1
 done
