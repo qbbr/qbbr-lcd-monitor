@@ -20,7 +20,7 @@
 // LCD
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x3F, 16, 2); // 0x27|0x20|0x3F
-const int buttonPin = 3; // mode change btn
+const int buttonPin = 3; // screen next btn
 unsigned long buttonClickPrevMillis = 0;
 boolean backlightFlag = true;
 typedef void (*ScreenList)(void);
@@ -59,12 +59,12 @@ void setup()
 
   dht.begin();
 
-  lcd.init(); // инициализация дисплея
-  lcd.setBacklight(backlightFlag); // подсветка
+  lcd.init();
+  lcd.setBacklight(backlightFlag);
   setScreenByIndex(screenIndex);
 
-  if (!bmp.begin()) { // BMP сенсор
-    Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
+  if (!bmp.begin()) {
+    Serial.print("Ooops, no BMP085 detected ... Check your I2C/IIC ADDR!");
     while (1);
   }
 
