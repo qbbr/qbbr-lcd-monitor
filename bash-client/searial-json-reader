@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+## ./qbbr-lcd-monitor
+# @depends: stty, jq
+# @author: qbbr
+# @license: MIT
+## output:
+# pressure (BMP):     960.84 hPa
+# temperature (BMP):  25.8 C
+# altitude (BMP):     445.7833 m
+# temperature (DHT):  27.5 C
+# humidity (DHT):     11 %
+
+port=/dev/ttyACM0
+delay=5
+
+function getValue() {
+	value=$(echo $1 | jq $2)
+	echo $value
+}
+
+function isValue() {
+	if [[ -n $1 ]] && [[ "$1" != "null" ]]; then
+		echo true
+	else
+		echo false
+	fi
+}
+
+while [[ true ]]
+do
+	stty -F $port cs8 9600 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts raw
+
+	while read LINE
+	do
+		#echo $LINE
+
+		pressure1=$(getValue "${LINE}" ".bmp.pressure")
+		if [[ true == $(isValue $pressure1) ]]; then
+			echo -n "pressure (BMP):     "
+			echo -n $pressure1
+			echo " hPa"
+		fi
+
+		temperature1=$(getValue "${LINE}" ".bmp.temperature")
+		if [[ true == $(isValue $temperature1) ]]; then
+			echo -n "temperature (BMP):  "
+			echo -n $temperature1
+			echo " C"
+		fi
+
+		altitude1=$(getValue "${LINE}" ".bmp.altitude")
+		if [[ true == $(isValue $altitude1) ]]; then
+			echo -n "altitude (BMP):     "
+			echo -n $altitude1
+			echo " m"
+		fi
+
+		temp2=$(getValue "${LINE}" ".dht.temperature") # or ".bmp.temperature"
+		if [[ true == $(isValue $temp2) ]]; then
+			echo -n "temperature (DHT):  "
+			echo -n $temp2
+			echo " C"
+		fi
+
+		humidity1=$(getValue "${LINE}" ".dht.humidity")
+		if [[ true == $(isValue $humidity1) ]]; then
+			echo -n "humidity (DHT):     "
+			echo -n $humidity1
+			echo " %"
+		fi
+
+		echo
+	done < $port
+
+	sleep $delay
+done

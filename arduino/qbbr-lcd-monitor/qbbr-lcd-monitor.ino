@@ -1,40 +1,51 @@
 /**
- * qbbr-lcd-monitor
- * 
- * Arduino LCD helper/notifier.
- * 
- * @licence MIT
- * @author Sokolov Innokenty <imqbbr@gmail.com>
- */
+   qbbr-lcd-monitor
+
+   Arduino LCD helper/notifier/station.
+
+   @licence MIT
+   @author Sokolov Innokenty <imqbbr@gmail.com>
+*/
 
 #include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP085_U.h>
+#include <ArduinoJson.h>
+
+//#define QBBR_DEBUG 1 // comment for disable
+#define QBBR_PRINT_JSON_DATA_DELAY 5000
+#define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
+#define QBBR_DEVICE_VERSION 1.2
+
+// LCD
 #include <LiquidCrystal_I2C.h>
-#include "DHT.h"
-#include "pitches.h"
-
-#define DEBUG 1
-
 LiquidCrystal_I2C lcd(0x3F, 16, 2); // 0x27|0x20|0x3F
-
-#define DHT_PIN 2
-DHT dht(DHT_PIN, DHT11); // DHT11|DHT22
-
-const int buttonPin = 3;
+const int buttonPin = 3; // mode change btn
 unsigned long buttonPrevMillis = 0;
-
 boolean backlightFlag = true;
-String request;
-
 typedef void (*FnMode)(void);
 FnMode lcdModes[] = {&setModeHello, &setModeLine, &setModeTemp};
 int lcdModeIndex = 0;
-
 String line1 = "";
 String line2 = "";
 
-const int buzzerPin = 4;
+// BMP
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 
-unsigned long tempPrevMillis = 0;
+// DHT
+#include "DHT.h"
+#define DHT_PIN 2
+DHT dht(DHT_PIN, DHT11); // DHT11|DHT22
+
+// tone fn
+#include "pitches.h"
+const int buzzerPin = 4;
+int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4*/};
+int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
+const int noteCount = 2;
+
+String request;
+unsigned long printPrevMillis = 0;
 
 void setup()
 {
@@ -45,6 +56,11 @@ void setup()
   lcd.init(); // инициализация дисплея
   lcd.setBacklight(backlightFlag); // подсветка
   setModeByIndex(lcdModeIndex);
+
+  if (!bmp.begin()) { // BMP сенсор
+    Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
+    while (1);
+  }
 
   pinMode(buttonPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
@@ -70,10 +86,44 @@ void loop()
       debug("event - btn clicked");
       lcd.clear();
       lcdModeChange();
-      
+
       buttonPrevMillis = millis();
     }
   }
+
+  // json data
+  if (millis() - printPrevMillis > QBBR_PRINT_JSON_DATA_DELAY) {
+    print2SerialJsonData();
+
+    printPrevMillis = millis();
+  }
+}
+
+void print2SerialJsonData()
+{
+  StaticJsonDocument<200> doc;
+
+  JsonObject root = doc.to<JsonObject>();
+  root["device"] = QBBR_DEVICE_NAME;
+  root["version"] = QBBR_DEVICE_VERSION;
+
+  JsonObject nodeBMP = root.createNestedObject("bmp");
+  float *data = getBmpData();
+  nodeBMP["pressure"] = data[0]; // hPa
+  nodeBMP["temperature"] = data[1]; // C
+  nodeBMP["altitude"] = data[2]; // m
+
+  JsonObject nodeDHT = root.createNestedObject("dht");
+  nodeDHT["temperature"] = getDHTTemperature(); // C
+  nodeDHT["humidity"] = getDHTHumidity(); // %
+
+#ifdef QBBR_DEBUG
+  serializeJsonPretty(root, Serial);
+#else
+  serializeJson(root, Serial);
+#endif
+
+  Serial.println();
 }
 
 void lcdModeChange()
@@ -95,8 +145,8 @@ void setModeByIndex(int index)
 
 void setModeHello()
 {
-  setText("      QBBR", 0);
-  setText("LCD Monitor v1.1", 1);
+  setText(QBBR_DEVICE_NAME, 0);
+  setText("version " + String(QBBR_DEVICE_VERSION), 1);
 }
 
 void setModeLine()
@@ -107,9 +157,9 @@ void setModeLine()
 
 void setModeTemp()
 {
-  float temp = getTemperature();
+  float temp = getDHTTemperature();
   setText("Temp: " + String(temp) + " C", 0);
-  float hum = getHumidity();
+  float hum = getDHTHumidity();
   setText("Hum: " + String(hum) + " %", 1);
 }
 
@@ -148,10 +198,10 @@ void parseRequest()
     /* Get request */
 
     if (request == "get-temp") {
-      float temp = getTemperature();
+      float temp = getDHTTemperature();
       debug(String(temp));
     } else if (request == "get-hum") {
-      float hum = getHumidity();
+      float hum = getDHTHumidity();
       debug(String(hum));
     }
   }
@@ -163,6 +213,18 @@ void clearRequest()
 {
   request = "";
 }
+
+void debug(String msg)
+{
+#ifdef QBBR_DEBUG
+  Serial.println("[D] " + msg);
+#endif
+}
+
+
+/*
+   LCD
+*/
 
 void setText(String text, int line)
 {
@@ -183,7 +245,7 @@ void blinkBacklight()
   lcd.setBacklight(backlightFlag);
 }
 
-int delays[] = {20, 40, 10, 40, 30, 60};
+const int delays[] = {20, 40, 10, 40, 30, 60};
 
 void blinkLongBacklight()
 {
@@ -199,9 +261,71 @@ void blinkLongBacklight()
   lcd.setBacklight(backlightFlag);
 }
 
-int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4*/};
-int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
-int noteCount = 2;
+
+/*
+   BMP Sensor
+*/
+
+float *getBmpData()
+{
+  static float data[3];
+  sensors_event_t event;
+  bmp.getEvent(&event);
+
+  if (event.pressure) {
+    data[0] = event.pressure;
+
+    float temperature;
+    bmp.getTemperature(&temperature);
+    data[1] = temperature;
+
+    /* Then convert the atmospheric pressure, SLP and temp to altitude    */
+    /* Update this next line with the current SLP for better results      */
+    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    data[2] = bmp.pressureToAltitude(seaLevelPressure, event.pressure, temperature);
+  } else {
+    debug("BMP180 Sensor error");
+  }
+
+  return data;
+}
+
+
+/*
+   DHT Sensor
+*/
+
+float getDHTTemperature()
+{
+  float t = dht.readTemperature();
+
+  if (isnan(t)) {
+    printDHTError();
+  }
+
+  return t;
+}
+
+float getDHTHumidity()
+{
+  float h = dht.readHumidity();
+
+  if (isnan(h)) {
+    printDHTError();
+  }
+
+  return h;
+}
+
+void printDHTError()
+{
+  debug("something wrong with DHT sensor.");
+}
+
+
+/*
+   tone fn
+*/
 
 void tonePlay()
 {
@@ -219,38 +343,4 @@ void tonePlay()
     // stop the tone playing:
     noTone(buzzerPin);
   }
-}
-
-float getTemperature()
-{
-  float t = dht.readTemperature();
-
-  if (isnan(t)) {
-    printDHTError();
-  }
-
-  return t;
-}
-
-float getHumidity()
-{
-  float h = dht.readHumidity();
-
-  if (isnan(h)) {
-    printDHTError();
-  }
-
-  return h;
-}
-
-void printDHTError()
-{
-  debug("something wrong with DHT sensor.");
-}
-
-void debug(String msg)
-{
-#ifdef DEBUG
-  Serial.println("[D] " + msg);
-#endif
 }
