@@ -21,11 +21,11 @@
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x3F, 16, 2); // 0x27|0x20|0x3F
 const int buttonPin = 3; // mode change btn
-unsigned long buttonPrevMillis = 0;
+unsigned long buttonClickPrevMillis = 0;
 boolean backlightFlag = true;
-typedef void (*FnMode)(void);
-FnMode lcdModes[] = {&setScreen01_Hello, &setScreen02_SerialInputData, &setScreen03_DHTData, &setScreen04_BMPData};
-int lcdModeIndex = 0; // setScreen01_Hello
+typedef void (*ScreenList)(void);
+ScreenList screenList[] = {&setScreen01_Hello, &setScreen02_SerialInputData, &setScreen03_DHTData, &setScreen04_BMPData};
+int screenIndex = 0; // setScreen01_Hello
 String serialInputLine1 = "";
 String serialInputLine2 = "";
 
@@ -44,8 +44,14 @@ int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_
 int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
 const int noteCount = 2;
 
-String request;
-unsigned long printPrevMillis = 0;
+unsigned long printJsonDataPrevMillis = 0;
+
+void debug(String msg)
+{
+#ifdef QBBR_DEBUG
+  Serial.println("[D] " + msg);
+#endif
+}
 
 void setup()
 {
@@ -55,7 +61,7 @@ void setup()
 
   lcd.init(); // инициализация дисплея
   lcd.setBacklight(backlightFlag); // подсветка
-  setModeByIndex(lcdModeIndex);
+  setScreenByIndex(screenIndex);
 
   if (!bmp.begin()) { // BMP сенсор
     Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
@@ -77,25 +83,25 @@ void loop()
     } else if (c == '.') { // start packet
       clearRequest();
     } else {
-      request += c;
+      putToRequest(c);
     }
   }
 
   if (digitalRead(buttonPin) == HIGH) {
-    if (millis() - buttonPrevMillis > 300) {
+    if (millis() - buttonClickPrevMillis > 300) {
       debug("event - btn clicked");
       lcd.clear();
-      lcdModeChange();
+      screenNext();
 
-      buttonPrevMillis = millis();
+      buttonClickPrevMillis = millis();
     }
   }
 
   // json data
-  if (millis() - printPrevMillis > QBBR_PRINT_JSON_DATA_DELAY) {
+  if (millis() - printJsonDataPrevMillis > QBBR_PRINT_JSON_DATA_DELAY) {
     print2SerialJsonData();
 
-    printPrevMillis = millis();
+    printJsonDataPrevMillis = millis();
   }
 }
 
@@ -126,21 +132,25 @@ void print2SerialJsonData()
   Serial.println();
 }
 
-void lcdModeChange()
+
+/*
+   Screen
+*/
+
+void screenNext()
 {
-  lcdModeIndex++;
-
-  if (lcdModeIndex >= (sizeof(lcdModes) / sizeof(lcdModes[0]))) {
-    lcdModeIndex = 0;
+  screenIndex++;
+  if (screenIndex >= (sizeof(screenList) / sizeof(screenList[0]))) {
+    screenIndex = 0;
   }
-
-  setModeByIndex(lcdModeIndex);
+  setScreenByIndex(screenIndex);
 }
 
-void setModeByIndex(int index)
+void setScreenByIndex(int index)
 {
-  debug("set mode by index: " + String(index));
-  lcdModes[index]();
+  debug("set screen by index: " + String(index));
+  lcd.clear();
+  screenList[index]();
 }
 
 /* Screen 01 */
@@ -174,15 +184,20 @@ void setScreen04_BMPData()
   setText(String((int) data[0]) + " hPa / " + String((int) data[2]) + " m", 1);
 }
 
+
+/*
+   request handler
+*/
+
+String request;
+
 void parseRequest()
 {
   if (request.length() == 0) {
     return;
   }
 
-  if (request.indexOf(":") != -1) {
-    /* Set request */
-
+  if (request.indexOf(":") != -1) { // Set request
     String method = request.substring(0, request.indexOf(":"));
     String args = request.substring(request.indexOf(":") + 1);
     debug("Method: " + method);
@@ -203,11 +218,11 @@ void parseRequest()
         blinkLongBacklight();
       } else if (args == "tone") {
         tonePlay();
+      } else if (args == "screen-next") {
+        screenNext();
       }
     }
-  } else {
-    /* Get request */
-
+  } else { // Get request
     if (request == "get-temp") {
       float temp = getDHTTemperature();
       debug(String(temp));
@@ -220,16 +235,14 @@ void parseRequest()
   clearRequest();
 }
 
+void putToRequest(char c)
+{
+  request += c;
+}
+
 void clearRequest()
 {
   request = "";
-}
-
-void debug(String msg)
-{
-#ifdef QBBR_DEBUG
-  Serial.println("[D] " + msg);
-#endif
 }
 
 
