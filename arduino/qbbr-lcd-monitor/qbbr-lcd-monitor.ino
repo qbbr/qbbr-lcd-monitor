@@ -24,10 +24,10 @@ const int buttonPin = 3; // mode change btn
 unsigned long buttonPrevMillis = 0;
 boolean backlightFlag = true;
 typedef void (*FnMode)(void);
-FnMode lcdModes[] = {&setModeHello, &setModeLine, &setModeTemp};
-int lcdModeIndex = 0;
-String line1 = "";
-String line2 = "";
+FnMode lcdModes[] = {&setScreen01_Hello, &setScreen02_SerialInputData, &setScreen03_DHTData, &setScreen04_BMPData};
+int lcdModeIndex = 0; // setScreen01_Hello
+String serialInputLine1 = "";
+String serialInputLine2 = "";
 
 // BMP
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
@@ -143,24 +143,35 @@ void setModeByIndex(int index)
   lcdModes[index]();
 }
 
-void setModeHello()
+/* Screen 01 */
+void setScreen01_Hello()
 {
   setText(QBBR_DEVICE_NAME, 0);
   setText("version " + String(QBBR_DEVICE_VERSION), 1);
 }
 
-void setModeLine()
+/* Screen 02 */
+void setScreen02_SerialInputData()
 {
-  setText(line1, 0);
-  setText(line2, 1);
+  setText(serialInputLine1, 0);
+  setText(serialInputLine2, 1);
 }
 
-void setModeTemp()
+/* Screen 03 */
+void setScreen03_DHTData()
 {
   float temp = getDHTTemperature();
   setText("Temp: " + String(temp) + " C", 0);
   float hum = getDHTHumidity();
   setText("Hum: " + String(hum) + " %", 1);
+}
+
+/* Screen 04 */
+void setScreen04_BMPData()
+{
+  float *data = getBmpData(); // [hPa, C, m]
+  setText("Temp: " + String(data[1]) + " C", 0);
+  setText(String((int) data[0]) + " hPa / " + String((int) data[2]) + " m", 1);
 }
 
 void parseRequest()
@@ -174,15 +185,15 @@ void parseRequest()
 
     String method = request.substring(0, request.indexOf(":"));
     String args = request.substring(request.indexOf(":") + 1);
-    //debug("Method: " + method);
-    //debug("Args: " + args);
+    debug("Method: " + method);
+    debug("Args: " + args);
 
     if (method == "l1") {
-      line1 = args;
-      setText(args, 0);
+      serialInputLine1 = args;
+      setText(serialInputLine1, 0);
     } else if (method == "l2") {
-      line2 = args;
-      setText(args, 1);
+      serialInputLine2 = args;
+      setText(serialInputLine2, 1);
     } else if (method == "fn") {
       if (args == "clear") {
         lcd.clear();
