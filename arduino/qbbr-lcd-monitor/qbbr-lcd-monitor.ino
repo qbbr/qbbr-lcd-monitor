@@ -16,7 +16,7 @@
 #define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
 #define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.2
+#define QBBR_DEVICE_VERSION 1.3
 
 // LCD
 #include <LiquidCrystal_I2C.h>
