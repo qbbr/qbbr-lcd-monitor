@@ -24,6 +24,9 @@ elif [[ "$1" == "--tone" ]]; then
 elif [[ "$1" == "--screen-next" ]]; then
 	echo ".fn:screen-next;" > $port
 	exit 0
+elif [[ "$1" == "--i2c-scan" ]]; then
+	echo ".fn:i2c-scan;" > $port
+	exit 0
 fi
 
 if [[ -n $1 ]]; then

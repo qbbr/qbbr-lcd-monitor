@@ -13,7 +13,8 @@
 #include <ArduinoJson.h>
 
 //#define QBBR_DEBUG 1 // comment for disable
-#define QBBR_PRINT_JSON_DATA_DELAY 5000
+#define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
+#define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
 #define QBBR_DEVICE_VERSION 1.2
 
@@ -45,6 +46,7 @@ int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
 const int noteCount = 2;
 
 unsigned long printJsonDataPrevMillis = 0;
+unsigned long lcdSensorsDataUpdatePrevMillis = 0;
 
 void debug(String msg)
 {
@@ -74,6 +76,7 @@ void setup()
 
 void loop()
 {
+  // read serial data
   if (Serial.available() > 0) {
     delay(10); // small delay to allow input buffer to fill
     char c = Serial.read();
@@ -87,6 +90,7 @@ void loop()
     }
   }
 
+  // btn click - screen next
   if (digitalRead(buttonPin) == HIGH) {
     if (millis() - buttonClickPrevMillis > 300) {
       debug("event - btn clicked");
@@ -97,11 +101,21 @@ void loop()
     }
   }
 
-  // json data
-  if (millis() - printJsonDataPrevMillis > QBBR_PRINT_JSON_DATA_DELAY) {
+  // print json data
+  if (millis() - printJsonDataPrevMillis > QBBR_PRINT_JSON_DATA_DELAY || printJsonDataPrevMillis == 0) {
     print2SerialJsonData();
 
     printJsonDataPrevMillis = millis();
+  }
+
+  // update only on screen with sensors (setScreen03_DHTData, setScreen04_BMPData)
+  if (screenIndex == 2 || screenIndex == 3) {
+    if (millis() - lcdSensorsDataUpdatePrevMillis > QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD) {
+      debug("update data on screen");
+      setScreenByIndex(screenIndex);
+
+      lcdSensorsDataUpdatePrevMillis = millis();
+    }
   }
 }
 
@@ -220,6 +234,8 @@ void parseRequest()
         tonePlay();
       } else if (args == "screen-next") {
         screenNext();
+      } else if (args == "i2c-scan") {
+        i2cScan();
       }
     }
   } else { // Get request
@@ -366,5 +382,47 @@ void tonePlay()
     delay(pauseBetweenNotes);
     // stop the tone playing:
     noTone(buzzerPin);
+  }
+}
+
+
+/**
+   I2C/IIC scanner
+*/
+
+void i2cScan()
+{
+  byte error, address;
+  int devices;
+
+  Serial.println("[I2C] Scanning...");
+
+  devices = 0;
+  for (address = 1; address < 127; address++) {
+    // https://www.arduino.cc/en/Reference/WireEndTransmission
+    // The i2c_scanner uses the return value of the Write.endTransmisstion
+    // to see if a device did acknowledge to the address.
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+
+    if (error == 0 || error == 4) {
+      if (error == 0) { // success
+        Serial.print("[I2C] device found at address 0x");
+        devices++;
+      } else if (error == 4) { // other error
+        Serial.print("[I2C][E] Unknown error at address 0x");
+      }
+
+      if (address < 16) {
+        Serial.print("0");
+      }
+      Serial.println(address, HEX);
+    }
+  }
+
+  if (devices == 0) {
+    Serial.println("[I2C] No devices");
+  } else {
+    Serial.println("[I2C] done");
   }
 }
