@@ -386,7 +386,7 @@ void tonePlay()
 }
 
 
-/**
+/*
    I2C/IIC scanner
 */
 
