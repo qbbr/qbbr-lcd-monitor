@@ -9,6 +9,7 @@ Arduino LCD helper/notifier/station.
  * DHT11/DHT22
  * BMP180 (over I2C/IIC)
  * buzzer
+ * relay 5v
 
 ## client
 

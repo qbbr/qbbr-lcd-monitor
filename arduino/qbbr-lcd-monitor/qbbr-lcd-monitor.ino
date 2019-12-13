@@ -16,7 +16,7 @@
 #define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
 #define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.3
+#define QBBR_DEVICE_VERSION 1.4
 
 // LCD
 #include <LiquidCrystal_I2C.h>
@@ -29,6 +29,7 @@ ScreenList screenList[] = {&setScreen01_Hello, &setScreen02_SerialInputData, &se
 int screenIndex = 0; // setScreen01_Hello
 String serialInputLine1 = "";
 String serialInputLine2 = "";
+unsigned long lcdSensorsDataUpdatePrevMillis = 0;
 
 // BMP
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
@@ -45,8 +46,14 @@ int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_
 int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
 const int noteCount = 2;
 
+// relay
+const int relayPin = 7;
+const bool relayRevertLogic = true;
+const bool relayDefaultSwitchOn = false;
+
+// other
 unsigned long printJsonDataPrevMillis = 0;
-unsigned long lcdSensorsDataUpdatePrevMillis = 0;
+
 
 void debug(String msg)
 {
@@ -72,6 +79,15 @@ void setup()
 
   pinMode(buttonPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
+  pinMode(relayPin, OUTPUT);
+
+  if (relayRevertLogic) {
+    digitalWrite(relayPin, HIGH); // HIGH for default switch off
+  }
+
+  if (relayDefaultSwitchOn) {
+    relayOn();
+  }
 }
 
 void loop()
@@ -236,6 +252,12 @@ void parseRequest()
         screenNext();
       } else if (args == "i2c-scan") {
         i2cScan();
+      } else if (args == "relay-toggle") {
+        relayToggle();
+      } else if (args == "relay-on") {
+        relayOn();
+      } else if (args == "relay-off") {
+        relayOff();
       }
     }
   } else { // Get request
@@ -425,4 +447,24 @@ void i2cScan()
   } else {
     Serial.println("[I2C] done");
   }
+}
+
+
+/*
+   Relay
+*/
+
+void relayToggle()
+{
+  digitalWrite(relayPin, !digitalRead(relayPin));
+}
+
+void relayOn()
+{
+  digitalWrite(relayPin, relayRevertLogic ? LOW : HIGH);
+}
+
+void relayOff()
+{
+  digitalWrite(relayPin, relayRevertLogic ? HIGH : LOW);
 }

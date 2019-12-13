@@ -27,6 +27,13 @@ elif [[ "$1" == "--screen-next" ]]; then
 elif [[ "$1" == "--i2c-scan" ]]; then
 	echo ".fn:i2c-scan;" > $port
 	exit 0
+elif [[ "$1" == "--relay-toggle" ]]; then
+	echo ".fn:relay-toggle;" > $port
+elif [[ "$1" == "--relay-on" ]]; then
+	echo ".fn:relay-on;" > $port
+elif [[ "$1" == "--relay-off" ]]; then
+	echo ".fn:relay-off;" > $port
+	exit 0
 fi
 
 if [[ -n $1 ]]; then
