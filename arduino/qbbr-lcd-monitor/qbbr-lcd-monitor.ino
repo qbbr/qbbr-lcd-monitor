@@ -16,7 +16,7 @@
 #define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
 #define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.4
+#define QBBR_DEVICE_VERSION 1.5
 
 // LCD
 #include <LiquidCrystal_I2C.h>
@@ -41,7 +41,7 @@ DHT dht(DHT_PIN, DHT11); // DHT11|DHT22
 
 // tone fn
 #include "pitches.h"
-const int buzzerPin = 4;
+const int buzzerPin = 8;
 int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4*/};
 int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
 const int noteCount = 2;
@@ -50,6 +50,8 @@ const int noteCount = 2;
 const int relayPin = 7;
 const bool relayRevertLogic = true;
 const bool relayDefaultSwitchOn = false;
+const int button2Pin = 4;
+unsigned long button2ClickPrevMillis = 0;
 
 // other
 unsigned long printJsonDataPrevMillis = 0;
@@ -114,6 +116,16 @@ void loop()
       screenNext();
 
       buttonClickPrevMillis = millis();
+    }
+  }
+
+  // btn2 click - relay toggle
+  if (digitalRead(button2Pin) == HIGH) {
+    if (millis() - button2ClickPrevMillis > 300) {
+      debug("event - btn2 clicked");
+      relayToggle();
+
+      button2ClickPrevMillis = millis();
     }
   }
 
