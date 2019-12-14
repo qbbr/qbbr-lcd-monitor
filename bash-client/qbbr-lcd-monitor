@@ -14,20 +14,20 @@ callFn() {
 	echo ".fn:$1;" > $port
 }
 
-if [[ "$1" == "--clear" ]]; then
-	callFn 'clear'
+if [[ "$1" == "--screen-clear" ]]; then
+	callFn 'screen-clear'
 	exit 0
-elif [[ "$1" == "--blink" ]]; then
-	callFn 'blink'
+elif [[ "$1" == "--screen-blink" ]]; then
+	callFn 'screen-blink'
 	exit 0
-elif [[ "$1" == "--blink-long" ]]; then
-	callFn 'blink-long'
-	exit 0
-elif [[ "$1" == "--tone" ]]; then
-	callFn 'tone'
+elif [[ "$1" == "--screen-blink-long" ]]; then
+	callFn 'screen-blink-long'
 	exit 0
 elif [[ "$1" == "--screen-next" ]]; then
 	callFn 'screen-next'
+	exit 0
+elif [[ "$1" == "--buzzer-tone" ]]; then
+	callFn 'buzzer-tone'
 	exit 0
 elif [[ "$1" == "--i2c-scan" ]]; then
 	callFn 'i2c-scan'

@@ -16,7 +16,7 @@
 #define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
 #define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.5
+#define QBBR_DEVICE_VERSION 1.6
 
 // LCD
 #include <LiquidCrystal_I2C.h>
@@ -252,16 +252,16 @@ void parseRequest()
       serialInputLine2 = args;
       setText(serialInputLine2, 1);
     } else if (method == "fn") {
-      if (args == "clear") {
+      if (args == "screen-clear") {
         lcd.clear();
-      } else if (args == "blink") {
-        blinkBacklight();
-      } else if (args == "blink-long") {
-        blinkLongBacklight();
-      } else if (args == "tone") {
-        tonePlay();
+      } else if (args == "screen-blink") {
+        screenBlinkBacklight();
+      } else if (args == "screen-blink-long") {
+        screenBlinkLongBacklight();
       } else if (args == "screen-next") {
         screenNext();
+      } else if (args == "buzzer-tone") {
+        buzzerTone();
       } else if (args == "i2c-scan") {
         i2cScan();
       } else if (args == "relay-toggle") {
@@ -306,7 +306,7 @@ void setText(String text, int line)
   lcd.print(text);
 }
 
-void blinkBacklight()
+void screenBlinkBacklight()
 {
   boolean backlightFlagBefore = backlightFlag;
 
@@ -321,7 +321,7 @@ void blinkBacklight()
 
 const int delays[] = {20, 40, 10, 40, 30, 60};
 
-void blinkLongBacklight()
+void screenBlinkLongBacklight()
 {
   boolean backlightFlagBefore = backlightFlag;
 
@@ -398,10 +398,10 @@ void printDHTError()
 
 
 /*
-   tone fn
+   Buzzer
 */
 
-void tonePlay()
+void buzzerTone()
 {
   // iterate over the notes of the melody:
   for (int thisNote = 0; thisNote < noteCount; thisNote++) {
