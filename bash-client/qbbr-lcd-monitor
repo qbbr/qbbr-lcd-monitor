@@ -9,32 +9,37 @@ echo "port: $port"
 
 stty -F $port -hupcl
 
+# RPC simulation, call arduino fn
+callFn() {
+	echo ".fn:$1;" > $port
+}
+
 if [[ "$1" == "--clear" ]]; then
-	echo ".fn:clear;" > $port
+	callFn 'clear'
 	exit 0
 elif [[ "$1" == "--blink" ]]; then
-	echo ".fn:blink;" > $port
+	callFn 'blink'
 	exit 0
 elif [[ "$1" == "--blink-long" ]]; then
-	echo ".fn:blink-long;" > $port
+	callFn 'blink-long'
 	exit 0
 elif [[ "$1" == "--tone" ]]; then
-	echo ".fn:tone;" > $port
+	callFn 'tone'
 	exit 0
 elif [[ "$1" == "--screen-next" ]]; then
-	echo ".fn:screen-next;" > $port
+	callFn 'screen-next'
 	exit 0
 elif [[ "$1" == "--i2c-scan" ]]; then
-	echo ".fn:i2c-scan;" > $port
+	callFn 'i2c-scan'
 	exit 0
 elif [[ "$1" == "--relay-toggle" ]]; then
-	echo ".fn:relay-toggle;" > $port
+	callFn 'relay-toggle'
 	exit 0
 elif [[ "$1" == "--relay-on" ]]; then
-	echo ".fn:relay-on;" > $port
+	callFn 'relay-on'
 	exit 0
 elif [[ "$1" == "--relay-off" ]]; then
-	echo ".fn:relay-off;" > $port
+	callFn 'relay-off'
 	exit 0
 fi
 
