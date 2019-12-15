@@ -69,6 +69,13 @@ do
 			echo " %"
 		fi
 
+		outside1=$(getValue "${LINE}" ".outside.temperature")
+		if [[ true == $(isValue $outside1) ]]; then
+			echo -n "outside:            "
+			echo -n $outside1
+			echo " %"
+		fi
+
 		echo
 	done < $port
 

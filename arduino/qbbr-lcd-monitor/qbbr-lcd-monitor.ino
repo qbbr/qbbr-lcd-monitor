@@ -7,16 +7,17 @@
    @author Sokolov Innokenty <imqbbr@gmail.com>
 */
 
+#include <math.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
 #include <ArduinoJson.h>
 
 //#define QBBR_DEBUG 1 // comment for disable
-#define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 120000
-#define QBBR_PRINT_JSON_DATA_DELAY 60000
+#define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 5000
+#define QBBR_PRINT_JSON_DATA_DELAY 5000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.6
+#define QBBR_DEVICE_VERSION 1.7
 
 // LCD
 #include <LiquidCrystal_I2C.h>
@@ -39,19 +40,22 @@ Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 #define DHT_PIN 2
 DHT dht(DHT_PIN, DHT11); // DHT11|DHT22
 
-// tone fn
+// Buzzer
 #include "pitches.h"
 const int buzzerPin = 8;
 int melody[] = {NOTE_C4, NOTE_A3/*, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4*/};
 int noteDurations[] = {8, 4}; // 4 = quarter note, 8 = eighth note, etc.
 const int noteCount = 2;
 
-// relay
+// Relay
 const int relayPin = 7;
 const bool relayRevertLogic = true;
 const bool relayDefaultSwitchOn = false;
 const int button2Pin = 4;
 unsigned long button2ClickPrevMillis = 0;
+
+// Termistor for outside temp
+const int termistorPin = 3; // A3
 
 // other
 unsigned long printJsonDataPrevMillis = 0;
@@ -165,6 +169,9 @@ void print2SerialJsonData()
   nodeDHT["temperature"] = getDHTTemperature(); // C
   nodeDHT["humidity"] = getDHTHumidity(); // %
 
+  JsonObject nodeOutside = root.createNestedObject("outside");
+  nodeOutside["temperature"] = getTermistorTemperature(); // C
+
 #ifdef QBBR_DEBUG
   serializeJsonPretty(root, Serial);
 #else
@@ -213,9 +220,10 @@ void setScreen02_SerialInputData()
 void setScreen03_DHTData()
 {
   float temp = getDHTTemperature();
-  setText("Temp: " + String(temp) + " C", 0);
   float hum = getDHTHumidity();
-  setText("Hum: " + String(hum) + " %", 1);
+  setText(String(temp) + " 'C " + '(' + String(hum, 0) + " " + '%' + ')', 0);
+  float outsideTemp = getTermistorTemperature();
+  setText("Out: " + String(outsideTemp) + " 'C", 1);
 }
 
 /* Screen 04 */
@@ -479,4 +487,21 @@ void relayOn()
 void relayOff()
 {
   digitalWrite(relayPin, relayRevertLogic ? HIGH : LOW);
+}
+
+
+/**
+   Analog termistor (NTC 10K 0.5%)
+*/
+float getTermistorTemperature()
+{
+  int input;
+  float temp;
+
+  input = analogRead(termistorPin);
+  temp = log(((10240000 / input) - 10000));
+  temp = 1 / (0.001129148 + (0.000234125 * temp) + (0.0000000876741 * temp * temp * temp));
+  temp = temp - 273.15;
+
+  return temp;
 }
