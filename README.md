@@ -19,6 +19,10 @@ Arduino LCD helper/notifier/station.
 
 see `bash-client/`
 
+## graphs
+
+see `processing/`
+
 ## etc
 
 [qbbr-lcd-monitor v1.6 test](https://www.youtube.com/watch?v=vj6_xaS7of4)
