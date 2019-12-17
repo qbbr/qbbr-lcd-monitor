@@ -54,6 +54,11 @@ const bool relayDefaultSwitchOn = false;
 const int button2Pin = 4;
 unsigned long button2ClickPrevMillis = 0;
 
+// PIR motion sensor
+const int pirPin = 6;
+int pirState = LOW;
+int pirVal = 0;
+
 // Termistor for outside temp
 const int termistorPin = 3; // A3
 
@@ -92,6 +97,7 @@ void setup()
   pinMode(buttonPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
   pinMode(relayPin, OUTPUT);
+  pinMode(pirPin, INPUT);
 
   if (relayRevertLogic) {
     digitalWrite(relayPin, HIGH); // HIGH for default switch off
@@ -161,6 +167,20 @@ void loop()
       setScreenByIndex(screenIndex);
 
       lcdSensorsDataUpdatePrevMillis = millis();
+    }
+  }
+
+  // PIR sensor
+  pirVal = digitalRead(pirPin);
+  if (pirVal == HIGH) {
+    if (pirState == LOW) {
+      Serial.println("motion start");
+      pirState = HIGH;
+    }
+  } else {
+    if (pirState == HIGH) {
+      Serial.println("motion stop");
+      pirState = LOW;
     }
   }
 }
