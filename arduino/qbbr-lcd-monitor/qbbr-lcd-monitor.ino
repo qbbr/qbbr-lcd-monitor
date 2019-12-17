@@ -14,10 +14,10 @@
 #include <ArduinoJson.h>
 
 //#define QBBR_DEBUG 1 // comment for disable
-#define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 5000
-#define QBBR_PRINT_JSON_DATA_DELAY 5000
+#define QBBR_LCD_SENSORS_DATA_UPDATE_PERIOD 10000
+#define QBBR_PRINT_JSON_DATA_DELAY 60000
 #define QBBR_DEVICE_NAME "qbbr-lcd-monitor"
-#define QBBR_DEVICE_VERSION 1.7
+#define QBBR_DEVICE_VERSION 1.8
 
 // LCD
 #include <LiquidCrystal_I2C.h>
@@ -57,6 +57,12 @@ unsigned long button2ClickPrevMillis = 0;
 // Termistor for outside temp
 const int termistorPin = 3; // A3
 
+// RGB LED
+const int ledRedPin = 11;
+const int ledGreenPin = 10;
+const int ledBluePin = 9;
+const bool ledDefaultSwitchOn = true;
+
 // other
 unsigned long printJsonDataPrevMillis = 0;
 
@@ -93,6 +99,14 @@ void setup()
 
   if (relayDefaultSwitchOn) {
     relayOn();
+  }
+
+  pinMode(ledRedPin, OUTPUT);
+  pinMode(ledGreenPin, OUTPUT);
+  pinMode(ledBluePin, OUTPUT);
+
+  if (ledDefaultSwitchOn) {
+    setLedRgbColor(0, 255, 0);
   }
 }
 
@@ -134,7 +148,7 @@ void loop()
   }
 
   // print json data
-  if (millis() - printJsonDataPrevMillis > QBBR_PRINT_JSON_DATA_DELAY || printJsonDataPrevMillis == 0) {
+  if (millis() - printJsonDataPrevMillis > QBBR_PRINT_JSON_DATA_DELAY/* || printJsonDataPrevMillis == 0*/) {
     print2SerialJsonData();
 
     printJsonDataPrevMillis = millis();
@@ -259,6 +273,8 @@ void parseRequest()
     } else if (method == "l2") {
       serialInputLine2 = args;
       setText(serialInputLine2, 1);
+    } else if (method == "rgb") {
+      setLedHexColor(args);
     } else if (method == "fn") {
       if (args == "screen-clear") {
         lcd.clear();
@@ -490,7 +506,7 @@ void relayOff()
 }
 
 
-/**
+/*
    Analog termistor (NTC 10K 0.5%)
 */
 float getTermistorTemperature()
@@ -504,4 +520,31 @@ float getTermistorTemperature()
   temp = temp - 273.15;
 
   return temp;
+}
+
+
+/*
+   RGB LED
+*/
+
+void setLedRgbColor(int r, int g, int b)
+{
+  analogWrite(ledRedPin, r);
+  analogWrite(ledGreenPin, g);
+  analogWrite(ledBluePin, b);
+}
+
+void ledRgbOff()
+{
+  setLedRgbColor(0, 0, 0);
+}
+
+/** @param String color Color in HEX format (RRGGBB) \wout # */
+void setLedHexColor(String color)
+{
+  long number = (long) strtol(&color[1], NULL, 16);
+  int r = number >> 16;
+  int g = number >> 8 & 0xFF;
+  int b = number & 0xFF;
+  setLedRgbColor(r, g, b);
 }

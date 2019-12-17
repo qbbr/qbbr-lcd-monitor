@@ -14,6 +14,7 @@ Arduino LCD helper/notifier/station.
  * 1x Relay 5v/220v
  * 2x Push buttons \w 10 kOhm res
  * 1x Termistor NTC 10k
+ * 1x RGB LED \w 220 Ohm res
 
 ## client
 
