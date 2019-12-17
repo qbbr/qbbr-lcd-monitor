@@ -12,9 +12,11 @@ Arduino LCD helper/notifier/station.
  * 1x BMP180 (over I2C/IIC)
  * 1x Buzzer
  * 1x Relay 5v/220v
- * 2x Push buttons \w 10 kOhm res
+ * 2x Push buttons
+ * 2x res 10 kOhm
  * 1x Termistor NTC 10k
- * 1x RGB LED \w 220 Ohm res
+ * 1x RGB LED
+ * 3x res 220 Ohm
 
 ## client
 
