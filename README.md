@@ -1,6 +1,6 @@
 # qbbr-lcd-monitor
 
-Arduino LCD helper/notifier/station.
+Just for Fun Arduino LCD helper/notifier/station \w blackjack and ho0kers.
 
 ## arduino
 
@@ -12,11 +12,11 @@ Arduino LCD helper/notifier/station.
  * 1x BMP180 (over I2C/IIC)
  * 1x Buzzer
  * 1x Relay 5v/220v
- * 2x Push buttons
- * 2x res 10 kOhm
+ * 2x Push buttons (1 for change LCD screens, 1 for toggle relay)
+ * 2x Res 10 kOhm
  * 1x Termistor NTC 10k
  * 1x RGB LED
- * 3x res 220 Ohm
+ * 3x Res 220 Ohm
 
 ## client
 
